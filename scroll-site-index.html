@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KINETIC — Motion Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0a08;
+    --cream: #f0ebe0;
+    --acid: #c8ff00;
+    --rust: #e84d1c;
+    --steel: #2a2a35;
+    --mist: #b8b4aa;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'DM Mono', monospace;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CUSTOM CURSOR */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--acid);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.08s ease, width 0.2s ease, height 0.2s ease, background 0.2s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 40px; height: 40px;
+    border: 1px solid var(--cream);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.18s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+  }
+  body:hover .cursor { opacity: 1; }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9000;
+    opacity: 0.6;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 48px;
+    z-index: 100;
+    mix-blend-mode: difference;
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.15em;
+    color: var(--cream);
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--cream);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .nav-links a:hover { opacity: 1; }
+
+  /* HERO */
+  .hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 70% 40%, #1a1a28 0%, var(--ink) 70%);
+  }
+
+  .hero-orb {
+    position: absolute;
+    top: 15%; right: 8%;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: conic-gradient(from 180deg, var(--rust), var(--acid), var(--rust));
+    filter: blur(80px);
+    opacity: 0.18;
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+  .hero-orb-2 {
+    position: absolute;
+    bottom: 20%; left: 5%;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: var(--acid);
+    filter: blur(100px);
+    opacity: 0.06;
+    animation: orbFloat 11s ease-in-out infinite reverse;
+  }
+
+  @keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -40px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.97); }
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--acid);
+    margin-bottom: 20px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 14vw, 200px);
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-title span {
+    display: block;
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  .hero-title span:nth-child(1) { animation: fadeUp 0.9s 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+  .hero-title span:nth-child(2) { 
+    animation: fadeUp 0.9s 0.45s cubic-bezier(0.16,1,0.3,1) forwards;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--cream);
+  }
+  .hero-title span:nth-child(3) { animation: fadeUp 0.9s 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+  .hero-sub {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    margin-top: -20px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.9s forwards;
+  }
+  .hero-sub p {
+    max-width: 280px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--mist);
+    text-align: right;
+  }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeIn 1s 1.4s forwards;
+  }
+  .hero-scroll span {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+  .scroll-line {
+    width: 1px; height: 60px;
+    background: linear-gradient(to bottom, var(--cream), transparent);
+    animation: scrollDrop 1.8s 1.6s ease-in-out infinite;
+  }
+  @keyframes scrollDrop {
+    0% { transform: scaleY(0); transform-origin: top; opacity: 1; }
+    50% { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    51% { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; opacity: 0.2; }
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  /* MARQUEE */
+  .marquee-section {
+    border-top: 1px solid rgba(240,235,224,0.1);
+    border-bottom: 1px solid rgba(240,235,224,0.1);
+    padding: 20px 0;
+    overflow: hidden;
+    background: var(--rust);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 0;
+    animation: marquee 18s linear infinite;
+    width: max-content;
+  }
+  .marquee-track span {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    padding: 0 40px;
+    white-space: nowrap;
+  }
+  .marquee-track .dot {
+    font-size: 12px;
+    display: inline-block;
+    transform: translateY(-8px);
+    padding: 0;
+    opacity: 0.5;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* SECTIONS */
+  section { padding: 120px 48px; }
+
+  /* WORK GRID */
+  .work-section { background: var(--ink); }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 60px;
+    border-bottom: 1px solid rgba(240,235,224,0.12);
+    padding-bottom: 20px;
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+  .section-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: clamp(36px, 5vw, 64px);
+    color: var(--cream);
+    line-height: 1.1;
+  }
+  .section-count {
+    font-size: 11px;
+    color: var(--mist);
+    letter-spacing: 0.1em;
+  }
+
+  .work-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 2px;
+  }
+  .work-card {
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+    background: var(--steel);
+  }
+  .work-card:first-child { grid-row: span 2; }
+
+  .card-inner {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 280px;
+    position: relative;
+    overflow: hidden;
+  }
+  .work-card:first-child .card-inner { min-height: 560px; }
+
+  .card-bg {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+  .work-card:hover .card-bg { transform: scale(1.06); }
+
+  .bg-1 { background: linear-gradient(135deg, #1a1230 0%, #3d1a52 50%, #c8a0e8 100%); }
+  .bg-2 { background: linear-gradient(135deg, #0d2818 0%, #1a5c38 60%, #4dba7a 100%); }
+  .bg-3 { background: linear-gradient(135deg, #2d1a08 0%, #8c3c10 60%, #e87030 100%); }
+
+  .card-geo {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.3;
+  }
+  .card-geo svg { width: 70%; height: 70%; }
+
+  .card-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 28px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+    transform: translateY(10px);
+    transition: transform 0.4s ease;
+  }
+  .work-card:hover .card-info { transform: translateY(0); }
+
+  .card-tag {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--acid);
+    margin-bottom: 8px;
+  }
+  .card-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.06em;
+    color: var(--cream);
+  }
+
+  .card-arrow {
+    position: absolute;
+    top: 28px; right: 28px;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(240,235,224,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(-8px) rotate(-45deg);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .work-card:hover .card-arrow {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  .card-arrow svg { width: 14px; height: 14px; stroke: var(--cream); fill: none; }
+
+  /* STATS */
+  .stats-section {
+    background: var(--cream);
+    color: var(--ink);
+    padding: 100px 48px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-top: 60px;
+  }
+  .stat-item {
+    padding: 48px 32px;
+    background: white;
+    border-left: 3px solid var(--ink);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .stat-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .stat-item:nth-child(2) { transition-delay: 0.1s; }
+  .stat-item:nth-child(3) { transition-delay: 0.2s; }
+  .stat-item:nth-child(4) { transition-delay: 0.3s; }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .stat-num .accent { color: var(--rust); }
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #666;
+    margin-top: 12px;
+  }
+
+  /* PROCESS */
+  .process-section { background: var(--steel); }
+  .process-list {
+    margin-top: 60px;
+    counter-reset: process;
+  }
+  .process-item {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    align-items: center;
+    padding: 36px 0;
+    border-bottom: 1px solid rgba(240,235,224,0.08);
+    gap: 40px;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+    counter-increment: process;
+  }
+  .process-item.visible { opacity: 1; transform: translateX(0); }
+  .process-item:nth-child(2) { transition-delay: 0.1s; }
+  .process-item:nth-child(3) { transition-delay: 0.2s; }
+  .process-item:nth-child(4) { transition-delay: 0.3s; }
+
+  .process-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: rgba(240,235,224,0.15);
+    letter-spacing: 0.05em;
+  }
+  .process-content h3 {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 28px;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+  .process-content p {
+    font-size: 12px;
+    color: var(--mist);
+    line-height: 1.8;
+    max-width: 480px;
+  }
+  .process-tag {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--acid);
+    border: 1px solid var(--acid);
+    padding: 6px 14px;
+    opacity: 0.7;
+  }
+
+  /* CTA */
+  .cta-section {
+    background: var(--acid);
+    color: var(--ink);
+    text-align: center;
+    padding: 160px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: 'START';
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30vw;
+    color: rgba(0,0,0,0.06);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .cta-label {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.5);
+    margin-bottom: 24px;
+  }
+  .cta-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 10vw, 130px);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--ink);
+    color: var(--cream);
+    padding: 20px 44px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: none;
+    cursor: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .cta-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--rust);
+    transform: translateX(-101%);
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+  .cta-btn:hover::before { transform: translateX(0); }
+  .cta-btn:hover { transform: translateY(-2px); }
+  .cta-btn span { position: relative; z-index: 1; }
+  .cta-btn svg { position: relative; z-index: 1; stroke: currentColor; fill: none; width: 16px; }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    border-top: 1px solid rgba(240,235,224,0.08);
+    padding: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  footer .foot-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.15em;
+    color: var(--cream);
+  }
+  footer p {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--mist);
+  }
+
+  /* SCROLL REVEAL BASE */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16,1,0.3,1);
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* PARALLAX LAYER */
+  .parallax { will-change: transform; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Kinetic</div>
+  <ul class="nav-links">
+    <li><a href="#">Work</a></li>
+    <li><a href="#">Studio</a></li>
+    <li><a href="#">Process</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-orb parallax" data-speed="0.3"></div>
+  <div class="hero-orb-2 parallax" data-speed="0.5"></div>
+  <p class="hero-eyebrow">Motion Design Studio — Est. 2019</p>
+  <h1 class="hero-title">
+    <span>WE</span>
+    <span>MAKE</span>
+    <span>THINGS<br>MOVE.</span>
+  </h1>
+  <div class="hero-sub">
+    <p>Award-winning motion design for brands that refuse to be still. We turn ideas into kinetic experiences.</p>
+  </div>
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Motion Design</span><span class="dot">●</span>
+    <span>Brand Identity</span><span class="dot">●</span>
+    <span>3D Animation</span><span class="dot">●</span>
+    <span>UI Motion</span><span class="dot">●</span>
+    <span>Kinetic Typography</span><span class="dot">●</span>
+    <span>Visual Effects</span><span class="dot">●</span>
+    <span>Motion Design</span><span class="dot">●</span>
+    <span>Brand Identity</span><span class="dot">●</span>
+    <span>3D Animation</span><span class="dot">●</span>
+    <span>UI Motion</span><span class="dot">●</span>
+    <span>Kinetic Typography</span><span class="dot">●</span>
+    <span>Visual Effects</span><span class="dot">●</span>
+  </div>
+</div>
+
+<!-- WORK GRID -->
+<section class="work-section">
+  <div class="section-header reveal">
+    <div>
+      <p class="section-label">Selected Work</p>
+      <h2 class="section-title">Recent Projects</h2>
+    </div>
+    <span class="section-count">06 works</span>
+  </div>
+  <div class="work-grid reveal">
+    <div class="work-card">
+      <div class="card-inner">
+        <div class="card-bg bg-1">
+          <div class="card-geo">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="100" cy="100" r="80" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <circle cx="100" cy="100" r="55" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+              <circle cx="100" cy="100" r="30" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+              <line x1="20" y1="100" x2="180" y2="100" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+              <line x1="100" y1="20" x2="100" y2="180" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-info">
+          <p class="card-tag">Brand Identity</p>
+          <h3 class="card-name">Nova Rebrand</h3>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3V10" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="work-card">
+      <div class="card-inner">
+        <div class="card-bg bg-2">
+          <div class="card-geo">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="40" y="40" width="120" height="120" stroke="rgba(255,255,255,0.2)" stroke-width="1" transform="rotate(15 100 100)"/>
+              <rect x="60" y="60" width="80" height="80" stroke="rgba(255,255,255,0.15)" stroke-width="1" transform="rotate(30 100 100)"/>
+              <rect x="80" y="80" width="40" height="40" stroke="rgba(255,255,255,0.1)" stroke-width="1" transform="rotate(45 100 100)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-info">
+          <p class="card-tag">3D Animation</p>
+          <h3 class="card-name">Flux System</h3>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3V10" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="work-card">
+      <div class="card-inner">
+        <div class="card-bg bg-3">
+          <div class="card-geo">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="100,20 180,155 20,155" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <polygon points="100,50 160,145 40,145" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+              <polygon points="100,80 140,135 60,135" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-info">
+          <p class="card-tag">UI Motion</p>
+          <h3 class="card-name">Prism UI</h3>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3V10" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-section">
+  <div class="section-header reveal" style="border-bottom-color:rgba(10,10,8,0.12);">
+    <div>
+      <p class="section-label" style="color:#999;">By the Numbers</p>
+      <h2 class="section-title" style="color:var(--ink);">The studio<br>in figures</h2>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-num">12<span class="accent">+</span></div>
+      <div class="stat-label">Years of motion craft</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">240</div>
+      <div class="stat-label">Projects delivered</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">18<span class="accent">×</span></div>
+      <div class="stat-label">Award wins globally</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Studio locations</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="process-section">
+  <div class="section-header reveal" style="border-bottom-color:rgba(240,235,224,0.08);">
+    <div>
+      <p class="section-label">How We Work</p>
+      <h2 class="section-title">The process</h2>
+    </div>
+  </div>
+  <div class="process-list">
+    <div class="process-item">
+      <div class="process-num">01</div>
+      <div class="process-content">
+        <h3>Discover & Define</h3>
+        <p>We immerse ourselves in your brand universe — understanding objectives, audiences, and the emotional territory worth owning.</p>
+      </div>
+      <div class="process-tag">Week 1–2</div>
+    </div>
+    <div class="process-item">
+      <div class="process-num">02</div>
+      <div class="process-content">
+        <h3>Concept & Sketch</h3>
+        <p>Three distinct motion directions, each exploring a different aesthetic premise. Rapid prototypes. Quick decisions.</p>
+      </div>
+      <div class="process-tag">Week 3</div>
+    </div>
+    <div class="process-item">
+      <div class="process-num">03</div>
+      <div class="process-content">
+        <h3>Design & Animate</h3>
+        <p>Frame by frame, we build worlds. Every easing curve deliberate, every transition purposeful, every frame considered.</p>
+      </div>
+      <div class="process-tag">Week 4–7</div>
+    </div>
+    <div class="process-item">
+      <div class="process-num">04</div>
+      <div class="process-content">
+        <h3>Deliver & Deploy</h3>
+        <p>Final files, style guides, and technical specs. We stay on until it's live and moving exactly as it should.</p>
+      </div>
+      <div class="process-tag">Week 8</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <p class="cta-label reveal">Ready when you are</p>
+  <h2 class="cta-title reveal">Let's Make<br>Something Move.</h2>
+  <a href="#" class="cta-btn reveal">
+    <span>Start a Project</span>
+    <svg viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3V10" stroke-width="1.5" stroke-linecap="round"/></svg>
+  </a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">Kinetic</div>
+  <p>© 2026 Kinetic Studio. All rights reserved.</p>
+  <p style="font-size:10px;letter-spacing:0.1em;color:var(--mist);">Houston · London · Tokyo</p>
+</footer>
+
+<script>
+  // CUSTOM CURSOR
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+  });
+
+  function animateCursor() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+
+  document.querySelectorAll('a, button, .work-card, .cta-btn').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.width = '24px';
+      cursor.style.height = '24px';
+      ring.style.width = '64px';
+      ring.style.height = '64px';
+      ring.style.opacity = '0.8';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.width = '12px';
+      cursor.style.height = '12px';
+      ring.style.width = '40px';
+      ring.style.height = '40px';
+      ring.style.opacity = '0.5';
+    });
+  });
+
+  // PARALLAX
+  document.addEventListener('mousemove', e => {
+    const x = (e.clientX / window.innerWidth - 0.5);
+    const y = (e.clientY / window.innerHeight - 0.5);
+    document.querySelectorAll('.parallax').forEach(el => {
+      const speed = parseFloat(el.dataset.speed) || 0.3;
+      el.style.transform = `translate(${x * 60 * speed}px, ${y * 60 * speed}px)`;
+    });
+  });
+
+  // SCROLL ANIMATIONS
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+
+  document.querySelectorAll('.reveal, .stat-item, .process-item').forEach(el => {
+    observer.observe(el);
+  });
+
+  // SCROLL PARALLAX ON HERO ORB
+  window.addEventListener('scroll', () => {
+    const scrollY = window.scrollY;
+    document.querySelector('.hero-orb').style.transform = `translateY(${scrollY * 0.25}px)`;
+    document.querySelector('.hero-orb-2').style.transform = `translateY(${scrollY * 0.15}px)`;
+  });
+</script>
+</body>
+</html>
